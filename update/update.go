@@ -6,4 +6,5 @@ type Client interface {
 	List() []string     // 文件列表
 	Download(string)    // 下载
 	Downloads([]string) // 批量下载
+	Close()
 }

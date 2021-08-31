@@ -1,42 +1,19 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/oamazing/sync/config"
 	"github.com/oamazing/sync/update"
 	"github.com/oamazing/sync/update/qiniu_client"
-	"gopkg.in/yaml.v3"
 )
-
-func init() {
-	bs, err := ioutil.ReadFile("./config.yml")
-	if err != nil {
-		log.Panic(err)
-	}
-	if err = yaml.Unmarshal(bs, &conf); err != nil {
-		log.Panic(err)
-	}
-}
-
-type Config struct {
-	BasePath string `yaml:"base_path"`
-	Storage  string `yaml:"storage"`
-	Qiniu    Qiniu  `yaml:"qiniu"`
-}
-
-type Qiniu struct {
-	Ak string `yaml:"ak"`
-	Sk string `yaml:"sk"`
-}
 
 var (
 	watcher *fsnotify.Watcher
-	conf    Config
 	client  update.Client
 )
 
@@ -52,6 +29,7 @@ func main() {
 		log.Panic(err)
 	}
 	defer watcher.Close()
+	conf := config.GetConfig()
 	switch conf.Storage {
 	case qiniu:
 		client = qiniu_client.NewQiniuClient()
@@ -81,6 +59,7 @@ func main() {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	<-ch
+	client.Close()
 }
 
 func addListener(path string) {
