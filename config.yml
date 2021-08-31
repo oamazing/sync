@@ -1,0 +1,6 @@
+base_path: /Users/dingye/Documents/docs
+storage: qiniu
+
+qiniu:
+  ak: VXwtP4CMlKX2j5ncElSdqcFU0H8K8Q-5YBcP0LV2
+  sk: MMYg-Du-KqUpX4JKNZ8-IJPXbIA6-Vywxeo3o-E6
