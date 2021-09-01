@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/fsnotify/fsnotify"
@@ -81,11 +82,20 @@ func handlerEvent(event fsnotify.Event, client update.Client) {
 	// 	// 如果是文件夹，那么就监听
 
 	// }
+	relpath, err := filepath.Rel(config.GetConfig().BasePath, filepath.Dir(fname))
+	if err != nil {
+		log.Println("get real path error")
+		return
+	}
+	if relpath == `.` {
+		relpath = ``
+	}
 	if event.Op&fsnotify.Create == fsnotify.Create {
 		// 创建操作
-		client.Write(fname)
+		client.Write(relpath, fname)
+
 	} else if event.Op&fsnotify.Remove == fsnotify.Remove {
 		// 删除文件
-		client.Remove(fname)
+		client.Remove(relpath, fname)
 	}
 }
