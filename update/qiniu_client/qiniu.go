@@ -90,6 +90,7 @@ func (qiniu *QiniuClient) Write(relpath, file string) {
 	}
 	log.Printf("write file %s success", file)
 }
+
 func (qiniu *QiniuClient) Remove(relpath, file string) {
 	_, fileName := filepath.Split(file)
 	if relpath != `` {
@@ -101,12 +102,33 @@ func (qiniu *QiniuClient) Remove(relpath, file string) {
 	}
 	log.Printf("remove file %s", file)
 }
-func (qiniu *QiniuClient) List() []string {
-	return []string{}
-}
-func (qiniu *QiniuClient) Download(string) {
 
+func (qiniu *QiniuClient) List() []string {
+	var (
+		marker = ``
+		files  = []string{}
+	)
+	for {
+		entries, _, nextMarker, hasNext, err := qiniu.manager.ListFiles(qiniu.Bucket, "", "", marker, 1000)
+		if err != nil {
+			log.Printf("get list error: %s", err)
+		}
+		for _, item := range entries {
+			files = append(files, item.Key)
+		}
+		if hasNext {
+			marker = nextMarker
+		} else {
+			break
+		}
+	}
+	return files
 }
+
+func (qiniu *QiniuClient) Download(filname string) {
+	// qiniu.manager.
+}
+
 func (qiniu *QiniuClient) Downloads([]string) {
 
 }
