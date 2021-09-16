@@ -32,3 +32,7 @@ func GetConfig() *Config {
 func GetQiniu() *Qiniu {
 	return &conf.Qiniu
 }
+
+func GetAli() *Ali {
+	return &conf.Ali
+}

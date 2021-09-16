@@ -2,7 +2,10 @@ package qiniu_client
 
 import (
 	"context"
+	"io"
 	"log"
+	"net/http"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -31,7 +34,12 @@ func NewQiniuClient() *QiniuClient {
 	}
 	cfg := storage.Config{}
 	// 空间对应的机房
-	cfg.Zone = &storage.ZoneHuanan
+	zone := config.GetConfig().Qiniu.Zone
+	reg, b := storage.GetRegionByID(storage.RegionID(zone))
+	if !b {
+		log.Panic("get reg error")
+	}
+	cfg.Zone = &reg
 	// 是否使用https域名
 	cfg.UseHTTPS = false
 	// 上传是否使用CDN上传加速
@@ -92,6 +100,7 @@ func (qiniu *QiniuClient) Write(relpath, file string) {
 }
 
 func (qiniu *QiniuClient) Remove(relpath, file string) {
+	log.Printf("remove file %s start", file)
 	_, fileName := filepath.Split(file)
 	if relpath != `` {
 		fileName = relpath + `/` + fileName
@@ -100,7 +109,7 @@ func (qiniu *QiniuClient) Remove(relpath, file string) {
 		log.Printf("remove file %s error %s", fileName, err)
 		return
 	}
-	log.Printf("remove file %s", file)
+	log.Printf("remove file %s end", file)
 }
 
 func (qiniu *QiniuClient) List() []string {
@@ -129,8 +138,25 @@ func (qiniu *QiniuClient) Download(filname string) {
 	// qiniu.manager.
 }
 
-func (qiniu *QiniuClient) Downloads([]string) {
-
+func (qiniu *QiniuClient) Downloads(files []string) {
+	url := config.GetConfig().Qiniu.Url
+	for _, name := range files {
+		f, err := os.Create(filepath.Join(config.GetConfig().BasePath, name))
+		if err != nil {
+			log.Printf("create file err: %s", err)
+		}
+		resp, err := http.Get(url + `/` + name)
+		if err != nil {
+			log.Printf("get file err: %s", err)
+		}
+		_, err = io.Copy(f, resp.Body)
+		if err != nil {
+			log.Printf("copy data err: %s", err)
+		}
+		log.Printf("sync file %s", url+`/`+name)
+		f.Close()
+		resp.Body.Close()
+	}
 }
 
 func (qiniu *QiniuClient) Close() {

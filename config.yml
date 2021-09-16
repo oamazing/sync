@@ -1,7 +1,13 @@
-base_path: /Users/dingye/Documents
+base_path: /Users/dingye/Documents/docs
 storage: qiniu
 
 qiniu:
   ak: VXwtP4CMlKX2j5ncElSdqcFU0H8K8Q-5YBcP0LV2
   sk: MMYg-Du-KqUpX4JKNZ8-IJPXbIA6-Vywxeo3o-E6
   bucket: sync-files
+  url: http://files.yyang.xin
+  zone: z2
+ali:
+  key: LTAINT6gjfX8lfEy
+  secret: VJ9Z7AAU7FjjfommtGj1LmQfFkTxkT
+  region: oss-cn-chengdu.aliyuncs.com

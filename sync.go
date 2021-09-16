@@ -1,10 +1,8 @@
 package main
 
 import (
-	"io"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -13,6 +11,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/oamazing/sync/config"
 	"github.com/oamazing/sync/update"
+	"github.com/oamazing/sync/update/ali_client"
 	"github.com/oamazing/sync/update/qiniu_client"
 )
 
@@ -23,7 +22,7 @@ var (
 
 const (
 	qiniu  = "qiniu"
-	alioss = "alioss"
+	alioss = "ali"
 )
 
 func main() {
@@ -37,6 +36,8 @@ func main() {
 	switch conf.Storage {
 	case qiniu:
 		client = qiniu_client.NewQiniuClient()
+	case alioss:
+		client = ali_client.NewAliClient()
 	default:
 		log.Panic("not found client")
 	}
@@ -62,8 +63,6 @@ func main() {
 			syncFiles = append(syncFiles, osFile)
 		}
 	}
-	// log.Printf("os files %+v", osFiles)
-	download("http://files.yyang.xin", osFiles)
 	client.Downloads(syncFiles)
 	go func() {
 		for {
@@ -100,18 +99,7 @@ func addListener(path string) {
 }
 
 func handlerEvent(event fsnotify.Event, client update.Client) {
-
 	fname := event.Name
-	finfo, err := os.Stat(fname)
-	if err != nil {
-		log.Printf("sync: get file info err %s", err)
-
-	} else {
-		if finfo.IsDir() {
-			// 如果是文件夹，那么就监听
-			return
-		}
-	}
 	relpath, err := filepath.Rel(config.GetConfig().BasePath, filepath.Dir(fname))
 	if err != nil {
 		log.Println("get real path error")
@@ -121,12 +109,27 @@ func handlerEvent(event fsnotify.Event, client update.Client) {
 		relpath = ``
 	}
 	if event.Op&fsnotify.Create == fsnotify.Create {
+
+		finfo, err := os.Stat(fname)
+		if err != nil {
+			log.Printf("sync: get file info err %s", err)
+
+		}
+		if finfo.IsDir() {
+			// 如果是文件夹，那么就监听
+			return
+		}
 		// 创建操作
 		client.Write(relpath, fname)
 
 	} else if event.Op&fsnotify.Remove == fsnotify.Remove {
 		// 删除文件
 		client.Remove(relpath, fname)
+	} else if event.Op&fsnotify.Rename == fsnotify.Rename {
+		// 删除文件
+		client.Remove(relpath, fname)
+	} else {
+		log.Printf("other op %s", event)
 	}
 }
 
@@ -137,27 +140,4 @@ func ContainerString(key string, s []string) bool {
 		}
 	}
 	return false
-}
-
-func download(url string, fileNames []string) {
-	for _, name := range fileNames {
-		// files = append(files,)
-		url = url + `/` + name
-		f, err := os.Create(filepath.Join(config.GetConfig().BasePath, name))
-		if err != nil {
-			log.Printf("create file err: %s", err)
-		}
-		resp, err := http.Get(url)
-		if err != nil {
-			log.Printf("get file err: %s", err)
-		}
-		_, err = io.Copy(f, resp.Body)
-		if err != nil {
-			log.Printf("copy data err: %s", err)
-		}
-		log.Printf("sync file %s", name)
-		f.Close()
-		resp.Body.Close()
-	}
-	// log.Println(files)
 }
